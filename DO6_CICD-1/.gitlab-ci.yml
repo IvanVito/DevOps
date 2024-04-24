@@ -1,0 +1,64 @@
+stages:
+  - code_style
+  - build
+  - int_test
+  - deploy
+
+build-job:
+  stage: build
+  script:
+    - echo "Build is starting"
+    - bash init_make.sh
+    - echo "Build is over."
+  after_script:
+    - chmod +x src/telegram.sh
+    - bash src/telegram.sh $CI_JOB_STATUS "CI"
+  artifacts:
+    paths:
+      - src/cat
+      - src/grep
+    expire_in: 30 days
+  allow_failure: false
+
+code_style-job:
+  stage: code_style
+  script:
+    - echo "Code Style is starting "
+    - cp materials/linters/.clang-format src/cat
+    - chmod +x src/cat/cat_style.sh
+    - bash src/cat/cat_style.sh
+    - rm src/cat/.clang-format
+    - cp materials/linters/.clang-format src/grep
+    - chmod +x src/grep/grep_style.sh
+    - bash src/grep/grep_style.sh
+    - rm src/grep/.clang-format
+    - echo "Code Style is over"
+  after_script:
+    - chmod +x src/telegram.sh
+    - bash src/telegram.sh $CI_JOB_STATUS "CI"
+  allow_failure: false
+
+int_test-job:
+  stage: int_test
+  script:
+    - echo "int_test is starting"
+    - chmod +x src/cat
+    - bash src/cat/my_test.sh
+    - chmod +x src/grep
+    - bash src/grep/my_test_grep.sh
+  after_script:
+    - chmod +x src/telegram.sh
+    - bash src/telegram.sh $CI_JOB_STATUS "CI"
+  allow_failure: false
+
+deploy-job:
+  stage: deploy
+  script:
+    - chmod +x init_ssh.sh
+    - echo "Stage deploy is starting"
+    - bash init_ssh.sh
+  after_script:
+    - chmod +x src/telegram.sh
+    - bash src/telegram.sh $CI_JOB_STATUS "CD"
+  when: manual
+  allow_failure: false
